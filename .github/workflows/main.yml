@@ -1,16 +1,16 @@
 name: Buscar Noticias de IA en Odontología
 
 on:
-  # 1. Ejecuta el script cada hora (en el minuto 0 de cada hora)
   schedule:
     - cron: '0 * * * *'
-
-  # 2. Permite ejecutarlo manualmente desde la pestaña "Actions"
   workflow_dispatch:
 
 jobs:
   build-and-commit:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: write # <-- AÑADE ESTE BLOQUE
 
     steps:
       # 1. Clona tu repositorio para que el script tenga acceso a él
@@ -21,17 +21,17 @@ jobs:
       - name: Configurar Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10' # Puedes usar 3.9, 3.10, 3.11, etc.
-          cache: 'pip' # Acelera la instalación de dependencias
+          python-version: '3.10'
+          cache: 'pip'
 
-      # 3. Instala las dependencias (el paquete 'requests')
+      # 3. Instala las dependencias
       - name: Instalar dependencias
         run: pip install -r requirements.txt
 
       # 4. Ejecuta tu script de Python
       - name: Ejecutar script de búsqueda de noticias
         env:
-          NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }} # Pasa el Secret al script
+          NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
         run: python buscar_noticias.py
 
       # 5. Sube los cambios (el nuevo archivo .md) al repositorio
@@ -39,6 +39,6 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "📰 Actualización automática de noticias"
-          file_pattern: "noticias/*.md" # Solo sube los archivos .md en la carpeta 'noticias'
+          file_pattern: "noticias/*.md"
           commit_user_name: "GitHub Actions Bot"
           commit_user_email: "actions@github.com"
