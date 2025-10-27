@@ -18,12 +18,6 @@ QUERIES = [
     '("digital dentistry" OR "dental imaging" OR "radiology" OR "endodontics" OR "orthodontics")'
 ]
 
-DOMAINS = ",".join([
-    "nature.com", "sciencedirect.com", "medicalxpress.com", "dental-tribune.com",
-    "dentistrytoday.com", "dentaleconomics.com", "ai.googleblog.com",
-    "techxplore.com", "ada.org", "drbicuspid.com", "mobihealthnews.com"
-])
-
 def traducir_texto(texto):
     try:
         return GoogleTranslator(source='en', target='es').translate(texto)
@@ -37,7 +31,7 @@ def fetch_news():
 
     today = datetime.date.today()
     today_str = today.strftime('%Y-%m-%d')
-    search_from = today - datetime.timedelta(days=7)
+    search_from = today - datetime.timedelta(days=2)  # Cambiado a 2 días
     search_from_str = search_from.strftime('%Y-%m-%d')
 
     os.makedirs(OUTPUT_DIR_EN, exist_ok=True)
@@ -52,21 +46,29 @@ def fetch_news():
     for i, query in enumerate(QUERIES, start=1):
         print(f"\n🔍 Búsqueda {i}/{len(QUERIES)}: {query}")
 
+        # Codificar la query para la URL
+        encoded_query = requests.utils.quote(query)
+
         url = (
             f'https://newsapi.org/v2/everything?'
-            f'q={query}&'
+            f'q={encoded_query}&'
             f'language={LANGUAGE}&'
             f'from={search_from_str}&'
             f'sortBy=publishedAt&'
-            f'domains={DOMAINS}&'
             f'pageSize=50&'
             f'apiKey={API_KEY}'
         )
+
+        print(f"   URL: {url.split('apiKey=')[0]}")  # No mostrar la API Key
 
         try:
             response = requests.get(url)
             response.raise_for_status()
             data = response.json()
+            # Verificar si la respuesta es ok
+            if data.get('status') != 'ok':
+                print(f"   ⚠️ Error en la respuesta de la API: {data.get('message', 'Unknown error')}")
+                continue
             articles = data.get('articles', [])
             print(f"   ➜ {len(articles)} artículos encontrados.")
             all_articles.extend(articles)
