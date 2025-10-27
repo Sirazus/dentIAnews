@@ -10,15 +10,26 @@ LANGUAGE = 'en'
 
 # Búsqueda avanzada con sinónimos y términos relacionados
 QUERY = (
-    '"AI in dentistry" OR "Artificial Intelligence in dentistry" OR '
-    '("AI" AND ("dentistry" OR "dental" OR "oral health" OR "endodontics" OR '
-    '"radiology" OR "orthodontics" OR "periodontics" OR "prosthodontics"))'
+    '"AI in dentistry" OR "artificial intelligence in dentistry" OR '
+    '"machine learning in dentistry" OR "deep learning in dentistry" OR '
+    '"dental AI" OR "AI dental" OR "smart dentistry" OR '
+    '("AI" OR "artificial intelligence" OR "machine learning" OR "deep learning") AND '
+    '("dentistry" OR "dental" OR "oral health" OR "endodontics" OR '
+    '"radiology" OR "orthodontics" OR "periodontics" OR "prosthodontics" OR '
+    '"oral surgery" OR "pediatric dentistry" OR "dental imaging" OR '
+    '"dental x-ray" OR "caries detection" OR "oral cancer" OR "dental diagnosis" OR '
+    '"treatment planning" OR "CAD/CAM dentistry" OR "digital dentistry" OR '
+    '"teledentistry" OR "dental technology" OR "denttech") OR '
+    '"Dental Monitoring" OR "VideaHealth" OR "Overjet" OR "Pearl" OR '
+    '"Denti.AI" OR "DentalXAI" OR "DentalAI" OR "Orca AI" OR "Orisview" OR "Allisone" OR "Diagnocat" OR "DentIA" OR "Llamalitica"'
 )
 
 # Dominios especializados (filtra por fuentes de salud, ciencia y tecnología)
 DOMAINS = (
     "nature.com,sciencedirect.com,medicalxpress.com,dental-tribune.com,"
-    "dentistrytoday.com,dentaleconomics.com,ai.googleblog.com,techxplore.com"
+    "dentistrytoday.com,dentaleconomics.com,ai.googleblog.com,techxplore.com,"
+    "jds.nih.gov,ada.org,dtg-global.com,drbicuspid.com,gacetadental.com,"
+    "mobihealthnews.com"
 )
 
 
