@@ -43,10 +43,7 @@ jobs:
           NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
         run: python buscar_noticias.py
         
-              # Añade este paso ANTES del commit para obtener la fecha
-      - name: Obtener fecha
-        id: date
-        run: echo "formattedDate=$(date +'%Y-%m-%d %H:%M')" >> $GITHUB_OUTPUT
+             
 
       # 5. Verifica los archivos creados (para debug)
       - name: Listar archivos generados
@@ -58,15 +55,12 @@ jobs:
           echo "=== Contenido de noticias_es ==="
           ls -la noticias_es/ 2>/dev/null || echo "Carpeta noticias_es no existe"
 
-           # 6. Sube los cambios
+       # 6. Sube los cambios
       - name: Confirmar y subir cambios
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "📰 Actualización automática de noticias - ${{ steps.date.outputs.formattedDate }}"
+          commit_message: "📰 Actualización automática de noticias"
           file_pattern: |
             noticias_en/*.md
             noticias_es/*.md
-          commit_user_name: "GitHub Actions Bot"
-          commit_user_email: "actions@github.com"
-          commit_options: '--no-verify'
 
