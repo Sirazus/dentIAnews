@@ -3,148 +3,116 @@ import os
 import datetime
 from deep_translator import GoogleTranslator
 
-# --- CONFIGURACIÓN ---
+# --- Configuración ---
 API_KEY = os.environ.get('NEWS_API_KEY')
-OUTPUT_DIR = "noticias"
 LANGUAGE = 'en'
+OUTPUT_DIR_EN = "noticias_en"
+OUTPUT_DIR_ES = "noticias_es"
 
-# Búsqueda avanzada con sinónimos y términos relacionados
-QUERY = (
-    '"AI in dentistry" OR "artificial intelligence in dentistry" OR '
-    '"machine learning in dentistry" OR "deep learning in dentistry" OR '
-    '"dental AI" OR "AI dental" OR "smart dentistry" OR '
-    '("AI" OR "artificial intelligence" OR "machine learning" OR "deep learning") AND '
-    '("dentistry" OR "dental" OR "oral health" OR "endodontics" OR '
-    '"radiology" OR "orthodontics" OR "periodontics" OR "prosthodontics" OR '
-    '"oral surgery" OR "pediatric dentistry" OR "dental imaging" OR '
-    '"dental x-ray" OR "caries detection" OR "oral cancer" OR "dental diagnosis" OR '
-    '"treatment planning" OR "CAD/CAM dentistry" OR "digital dentistry" OR '
-    '"teledentistry" OR "dental technology" OR "denttech") OR '
-    '"Dental Monitoring" OR "VideaHealth" OR "Overjet" OR "Pearl" OR '
-    '"Denti.AI" OR "DentalXAI" OR "DentalAI" OR "Orca AI" OR "Orisview" OR "Allisone" OR "Diagnocat" OR "DentIA" OR "Llamalitica"'
-)
+# Grupos de búsqueda (más manejables)
+QUERIES = [
+    '"AI in dentistry" OR "artificial intelligence in dentistry" OR "machine learning in dentistry"',
+    '"deep learning in dentistry" OR "dental AI" OR "AI dental" OR "smart dentistry"',
+    '("AI" OR "artificial intelligence") AND ("dentistry" OR "dental" OR "oral health")',
+    '"Allisone" OR "Overjet" OR "Pearl" OR "VideaHealth" OR "Diagnocat" OR "Dental Monitoring"',
+    '("digital dentistry" OR "dental imaging" OR "radiology" OR "endodontics" OR "orthodontics")'
+]
 
-# Dominios especializados (filtra por fuentes de salud, ciencia y tecnología)
-DOMAINS = (
-    "nature.com,sciencedirect.com,medicalxpress.com,dental-tribune.com,"
-    "dentistrytoday.com,dentaleconomics.com,ai.googleblog.com,techxplore.com,"
-    "jds.nih.gov,ada.org,dtg-global.com,drbicuspid.com,gacetadental.com,"
-    "mobihealthnews.com"
-)
+DOMAINS = ",".join([
+    "nature.com", "sciencedirect.com", "medicalxpress.com", "dental-tribune.com",
+    "dentistrytoday.com", "dentaleconomics.com", "ai.googleblog.com",
+    "techxplore.com", "ada.org", "drbicuspid.com", "mobihealthnews.com"
+])
 
-
-def translate_text(text, source='en', target='es'):
-    """Traduce texto con deep-translator; si falla, devuelve el original."""
+def traducir_texto(texto):
     try:
-        return GoogleTranslator(source=source, target=target).translate(text)
+        return GoogleTranslator(source='en', target='es').translate(texto)
     except Exception:
-        return text
-
+        return texto
 
 def fetch_news():
     if not API_KEY:
-        print("❌ Error: No se encontró la variable de entorno NEWS_API_KEY.")
+        print("❌ No se encontró la variable de entorno NEWS_API_KEY.")
         return
 
     today = datetime.date.today()
     today_str = today.strftime('%Y-%m-%d')
-    search_from = today - datetime.timedelta(days=5)
+    search_from = today - datetime.timedelta(days=7)
     search_from_str = search_from.strftime('%Y-%m-%d')
 
-    # Carpetas de salida
-    output_en = os.path.join(OUTPUT_DIR, f"{today_str}.md")
-    output_es = os.path.join(OUTPUT_DIR, "es", f"{today_str}.md")
-    os.makedirs(os.path.join(OUTPUT_DIR, "es"), exist_ok=True)
+    os.makedirs(OUTPUT_DIR_EN, exist_ok=True)
+    os.makedirs(OUTPUT_DIR_ES, exist_ok=True)
 
-    # --- Construcción de la URL ---
-    url = (
-        f'https://newsapi.org/v2/everything?'
-        f'q={QUERY}&'
-        f'qInTitle=dentistry&'
-        f'language={LANGUAGE}&'
-        f'domains={DOMAINS}&'
-        f'from={search_from_str}&'
-        f'sortBy=publishedAt&'
-        f'pageSize=50&'
-        f'apiKey={API_KEY}'
-    )
+    filename_en = os.path.join(OUTPUT_DIR_EN, f"{today_str}.md")
+    filename_es = os.path.join(OUTPUT_DIR_ES, f"{today_str}.md")
 
-    print(f"🔎 Buscando artículos con consulta:\n{QUERY}\n")
-    print(f"🕒 Desde: {search_from_str}")
+    all_articles = []
 
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Error al contactar la API: {e}")
+    # Buscar por bloques
+    for i, query in enumerate(QUERIES, start=1):
+        print(f"\n🔍 Búsqueda {i}/{len(QUERIES)}: {query}")
+
+        url = (
+            f'https://newsapi.org/v2/everything?'
+            f'q={query}&'
+            f'language={LANGUAGE}&'
+            f'from={search_from_str}&'
+            f'sortBy=publishedAt&'
+            f'domains={DOMAINS}&'
+            f'pageSize=50&'
+            f'apiKey={API_KEY}'
+        )
+
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            data = response.json()
+            articles = data.get('articles', [])
+            print(f"   ➜ {len(articles)} artículos encontrados.")
+            all_articles.extend(articles)
+        except requests.exceptions.RequestException as e:
+            print(f"   ⚠️ Error en búsqueda {i}: {e}")
+
+    # Eliminar duplicados por URL
+    unique_articles = {a['url']: a for a in all_articles}.values()
+    print(f"\n✅ Total artículos únicos: {len(unique_articles)}")
+
+    if not unique_articles:
+        print("⚠️ No se encontraron artículos nuevos.")
+        with open(filename_en, 'w', encoding='utf-8') as f_en, \
+             open(filename_es, 'w', encoding='utf-8') as f_es:
+            f_en.write(f"# AI in Dentistry News ({today_str})\n\nNo news found.\n")
+            f_es.write(f"# Noticias sobre IA en Odontología ({today_str})\n\nNo se encontraron noticias.\n")
         return
 
-    data = response.json()
-    articles = data.get('articles', [])
+    # Guardar en inglés y traducido
+    with open(filename_en, 'w', encoding='utf-8') as f_en, \
+         open(filename_es, 'w', encoding='utf-8') as f_es:
 
-    if not articles:
-        print(f"⚠️ No se encontraron artículos nuevos para {today_str}.")
-        with open(output_en, 'w', encoding='utf-8') as f:
-            f.write(f"# Noticias sobre IA en Odontología ({today_str})\n\n")
-            f.write("No se encontraron noticias en los últimos 5 días.\n")
-        with open(output_es, 'w', encoding='utf-8') as f:
-            f.write(f"# Noticias sobre IA en Odontología ({today_str})\n\n")
-            f.write("No se encontraron noticias en los últimos 5 días.\n")
-        return
+        f_en.write(f"# AI in Dentistry News ({today_str})\n\n")
+        f_es.write(f"# Noticias sobre IA en Odontología ({today_str})\n\n")
 
-    # --- Filtrar duplicados y no relevantes ---
-    seen_titles = set()
-    filtered = []
-
-    for article in articles:
-        title = article.get('title', '').strip()
-        if not title or title.lower() in seen_titles:
-            continue
-        seen_titles.add(title.lower())
-
-        if 'AI' not in title and 'artificial' not in title.lower():
-            continue
-
-        filtered.append(article)
-
-    print(f"✅ Se encontraron {len(filtered)} artículos relevantes.")
-    print(f"📁 Guardando resultados en inglés y traducidos al español...")
-
-    # --- Escribir versión en inglés ---
-    with open(output_en, 'w', encoding='utf-8') as f:
-        f.write(f"# 🦷 AI in Dentistry News ({today_str})\n\n")
-        f.write(f"Results from the last 5 days. Total: {len(filtered)}\n\n")
-
-        for article in filtered:
+        for i, article in enumerate(unique_articles, start=1):
             title = article.get('title', 'Untitled')
+            desc = article.get('description', '')
             url = article.get('url', '#')
             source = article.get('source', {}).get('name', 'Unknown source')
-            published_at = article.get('publishedAt', 'Unknown date').replace("T", " ").replace("Z", " UTC")
+            published = article.get('publishedAt', '').replace("T", " ").replace("Z", " UTC")
 
-            f.write(f"## [{title}]({url})\n")
-            f.write(f"- **Source:** {source}\n")
-            f.write(f"- **Published:** {published_at}\n\n")
-            f.write("---\n\n")
+            title_es = traducir_texto(title)
+            desc_es = traducir_texto(desc)
 
-    # --- Escribir versión traducida ---
-    with open(output_es, 'w', encoding='utf-8') as f:
-        f.write(f"# 🦷 Noticias sobre IA en Odontología ({today_str})\n\n")
-        f.write(f"Resultados de los últimos 5 días (traducción automática). Total: {len(filtered)}\n\n")
+            # Inglés
+            f_en.write(f"## {i}. [{title}]({url})\n")
+            f_en.write(f"- **Source:** {source}\n")
+            f_en.write(f"- **Published:** {published}\n\n{desc}\n\n---\n\n")
 
-        for article in filtered:
-            title = article.get('title', 'Sin título')
-            title_es = translate_text(title)
-            url = article.get('url', '#')
-            source = article.get('source', {}).get('name', 'Fuente desconocida')
-            published_at = article.get('publishedAt', 'Fecha desconocida').replace("T", " ").replace("Z", " UTC")
+            # Español
+            f_es.write(f"## {i}. [{title_es}]({url})\n")
+            f_es.write(f"- **Fuente:** {source}\n")
+            f_es.write(f"- **Publicado:** {published}\n\n{desc_es}\n\n---\n\n")
 
-            f.write(f"## [{title_es}]({url})\n")
-            f.write(f"- **Fuente:** {source}\n")
-            f.write(f"- **Publicado:** {published_at}\n\n")
-            f.write("---\n\n")
-
-    print(f"✅ Archivos generados correctamente:\n- 🇬🇧 {output_en}\n- 🇪🇸 {output_es}")
-
+    print(f"\n📂 Archivos creados:\n- {filename_en}\n- {filename_es}")
 
 if __name__ == "__main__":
     fetch_news()
